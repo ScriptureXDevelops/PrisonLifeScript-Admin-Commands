@@ -1,1 +1,139 @@
+--// Prison Command System
+-- Single LocalScript Version
 
+local PREFIX = "?"
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CommandSystem"
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 350, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+MainFrame.BorderSizePixel = 0
+
+local Header = Instance.new("TextLabel", MainFrame)
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+Header.Text = "Prison Reborn v1.0 - Command List"
+Header.TextColor3 = Color3.new(1,1,1)
+Header.TextScaled = true
+Header.Font = Enum.Font.SourceSansBold
+
+local Scroller = Instance.new("ScrollingFrame", MainFrame)
+Scroller.Size = UDim2.new(1, 0, 1, -40)
+Scroller.Position = UDim2.new(0,0,0,40)
+Scroller.CanvasSize = UDim2.new(0,0,0,0)
+Scroller.ScrollBarThickness = 6
+Scroller.BackgroundTransparency = 0.2
+
+local commands = {
+    "?fly / ?unfly — Enables/disables flying",
+    "?kill (player) — Kills target player",
+    "?to (player) — Teleports you to target player",
+    "?bring (player) — Brings target player to you",
+    "?noclip / ?unoclip — Toggle noclip",
+    "?killaura / ?unkillaura — Auto attack nearby players",
+    "?ak — Gives you an AK",
+    "?infammo — Infinite ammo"
+}
+
+for i, cmd in ipairs(commands) do
+    local lbl = Instance.new("TextLabel", Scroller)
+    lbl.Size = UDim2.new(1, -10, 0, 30)
+    lbl.Position = UDim2.new(0, 5, 0, (i-1)*32)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = cmd
+    lbl.TextColor3 = Color3.new(1,1,1)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Font = Enum.Font.SourceSans
+    lbl.TextScaled = true
+end
+Scroller.CanvasSize = UDim2.new(0,0,0,#commands * 32)
+
+-- Variables
+local flying, noclip, killaura = false, false, false
+
+-- Fly
+local function fly()
+    if flying then return end
+    flying = true
+    local HRP = player.Character:WaitForChild("HumanoidRootPart")
+    local BV = Instance.new("BodyVelocity", HRP)
+    BV.MaxForce = Vector3.new(1e5,1e5,1e5)
+    BV.Velocity = Vector3.zero
+    while flying and task.wait() do
+        BV.Velocity = (mouse.Hit.p - HRP.Position).Unit * 50
+    end
+    BV:Destroy()
+end
+local function unfly() flying = false end
+
+-- Kill player
+local function kill(plrName)
+    for _,plr in pairs(game.Players:GetPlayers()) do
+        if plr.Name:lower():sub(1,#plrName) == plrName:lower() then
+            local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = 0 end
+        end
+    end
+end
+
+-- Teleport to player
+local function to(plrName)
+    local HRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    for _,plr in pairs(game.Players:GetPlayers()) do
+        if plr.Name:lower():sub(1,#plrName) == plrName:lower() then
+            if HRP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                HRP.CFrame = plr.Character.HumanoidRootPart.CFrame + Vector3.new(2,0,0)
+            end
+        end
+    end
+end
+
+-- Bring player
+local function bring(plrName)
+    for _,plr in pairs(game.Players:GetPlayers()) do
+        if plr.Name:lower():sub(1,#plrName) == plrName:lower() then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and player.Character then
+                plr.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame + Vector3.new(3,0,0)
+            end
+        end
+    end
+end
+
+-- Noclip
+game:GetService("RunService").Stepped:Connect(function()
+    if noclip and player.Character then
+        for _,part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- Chat listener
+player.Chatted:Connect(function(msg)
+    if not msg:lower():match("^"..PREFIX) then return end
+    local args = string.split(msg:sub(2), " ")
+    local cmd = args[1]:lower()
+    table.remove(args,1)
+
+    if cmd == "fly" then fly()
+    elseif cmd == "unfly" then unfly()
+    elseif cmd == "kill" and args[1] then kill(args[1])
+    elseif cmd == "to" and args[1] then to(args[1])
+    elseif cmd == "bring" and args[1] then bring(args[1])
+    elseif cmd == "noclip" then noclip = true
+    elseif cmd == "unoclip" then noclip = false
+    elseif cmd == "killaura" then killaura = true
+    elseif cmd == "unkillaura" then killaura = false
+    elseif cmd == "ak" then print("TODO: Give AK system here")
+    elseif cmd == "infammo" then print("TODO: Infinite ammo system here")
+    end
+end)
